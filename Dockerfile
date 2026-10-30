@@ -17,12 +17,19 @@ RUN npm ci --omit=dev
 # TODO(step-4c): copy the rest of the app source into /app.
 COPY app/ ./
 
+# patch vulnerable transitive dep without touching app/package*.json
+RUN npm install --no-save --omit=dev proxy-addr@2.0.8
+
 # =============================================================================
 # Runtime stage — slim final image. Nothing from builder's caches leaks in.
 # =============================================================================
 
 # TODO(step-4d): set the runtime base image (same tag as step-4a for consistency).
 FROM node:20.11-slim
+
+# patch OS packages; drop npm (not needed at runtime, ships vulnerable tar)
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /app
 
